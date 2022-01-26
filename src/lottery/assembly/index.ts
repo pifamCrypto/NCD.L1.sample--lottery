@@ -4,23 +4,70 @@ import { AccountId, ONE_NEAR, asNEAR, XCC_GAS } from "../../utils";
 
 import { FeeStrategy, StrategyType } from "./fee-strategies";
 import { Lottery } from "./lottery";
+import { Bet, LotteryDefinition, LotteryInfo } from "./models";
 
 
 @nearBindgen
 export class Contract {
 
-  private owner: AccountId;
+  
   private winner: AccountId;
   private last_played: AccountId;
   private active: bool = true;
   private pot: u128 = ONE_NEAR;
   private fee_strategy: FeeStrategy = new FeeStrategy();
   private lottery: Lottery = new Lottery();
+  
+  /* my attributes */
+  private owner: AccountId;
+  private lotteryCreator: AccountId;
+  private currentLottery: Lottery;
+
   private players: PersistentSet<AccountId> = new PersistentSet<AccountId>("p");
 
   constructor(owner: AccountId) {
     this.owner = owner;
   };
+
+  // --------------------------------------------------------------------------
+  // Public VIEW methods
+  // --------------------------------------------------------------------------
+
+  get_current_lottery() : Lottery {
+    
+    return this.currentLottery;
+  }
+
+  // --------------------------------------------------------------------------
+  // Public CHANGE methods
+  // --------------------------------------------------------------------------
+  @mutateState()
+  define_lottery(minNumber: u32, maxNumber: u32, creator: AccountId): bool {
+    this.assert_self();
+
+    if (!this.currentLottery){
+      this.currentLottery = new LotteryInfo();
+
+      this.currentLottery.numberOfPlayers = 0;
+      this.currentLottery.definition.minNumber = minNumber;
+      this.currentLottery.definition.maxNumber = maxNumber;
+      this.currentLottery.definition.creator = creator;
+    }
+    
+    return true;
+  }
+
+  @mutateState()
+  join_lottery(player: AccountId, number: u32): bool {
+    this.assert_self();
+    this.assert_lottery_on();
+
+    this.currentLottery.addBet(player, number);
+    
+    return true;
+  }
+
+/** END OF MY CODE */
 
   // --------------------------------------------------------------------------
   // Public VIEW methods
@@ -63,7 +110,7 @@ export class Contract {
   }
 
   explain_lottery(): string {
-    return this.lottery.explain()
+    return this.lottery.explainX()
   }
 
   // --------------------------------------------------------------------------
@@ -182,5 +229,10 @@ export class Contract {
     const caller = Context.predecessor
     const self = Context.contractName
     assert(caller == self, "Only this contract may call itself");
+  }
+
+  /* MY PRIVATE METHODS */
+  private assert_lottery_on(): void {
+    assert(this.currentLottery, "A lottery must be defined and on")
   }
 }

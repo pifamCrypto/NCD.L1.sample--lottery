@@ -1,10 +1,11 @@
 import { logging, RNG } from "near-sdk-as";
+import { LotteryInfo } from "./models";
 
 @nearBindgen
 export class Lottery {
   private chance: f64 = 0.20
 
-  explain(): string {
+  explainX(): string {
     return "Players have a " + (this.chance * 100).toString() + "% chance of winning.";
   }
 
@@ -18,6 +19,16 @@ export class Lottery {
   configure(chance: f64): void {
     assert(chance >= 0.000000001 && chance <= 1, "Chance must be within range (0..1]");
     this.chance = chance;
-    logging.log(this.explain());
+    logging.log(this.explainX());
+  }
+
+ 
+}
+
+@nearBindgen
+export class NumbersGame {
+
+  get_current_game() : LotteryInfo {
+    return new LotteryInfo();
   }
 }
